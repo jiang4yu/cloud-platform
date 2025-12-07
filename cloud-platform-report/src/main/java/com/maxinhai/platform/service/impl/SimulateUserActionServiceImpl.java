@@ -9,14 +9,12 @@ import cn.hutool.json.JSONObject;
 import cn.hutool.json.JSONUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.yulichang.wrapper.MPJLambdaWrapper;
 import com.maxinhai.platform.dto.OrderAddDTO;
 import com.maxinhai.platform.enums.OrderStatus;
 import com.maxinhai.platform.feign.SystemFeignClient;
 import com.maxinhai.platform.handler.HashHandler;
 import com.maxinhai.platform.handler.ListHandler;
-import com.maxinhai.platform.handler.MqttHandler;
 import com.maxinhai.platform.handler.StringHandler;
 import com.maxinhai.platform.mapper.TaskOrderMapper;
 import com.maxinhai.platform.mapper.UserMapper;
@@ -303,22 +301,18 @@ public class SimulateUserActionServiceImpl implements SimulateUserActionService 
             }
         } else if (loginFlag && "wait".equals(orderStatus)) {
             // 指派派工单给在线用户
-//            List<TaskOrder> taskOrderList = getTaskOrder();
-            // 旧的逻辑不靠谱，换新的
             List<TaskOrder> taskOrderList = queryCanStartWorkTaskList();
             if (CollectionUtils.isEmpty(taskOrderList)) {
                 userStepMap.put(account, "none");
                 return;
             }
-            // 查询300个派工单，按照已分配派工单排除，给没有任务的用户分配新的派工单，避免多个用户操作同一个派工单
-            Map<String, TaskOrder> taskOrderMap = taskOrderList.stream().collect(Collectors.toMap(TaskOrder::getId, TaskOrder -> TaskOrder));
-            // Collectors.toSet()默认是HashSet，使用LinkedHashSet保持顺序一致性
-            Set<String> taskOrderIds = taskOrderList.stream().map(TaskOrder::getId).collect(Collectors.toCollection(LinkedHashSet::new));
-            for (String taskOrderId : taskOrderIds) {
+            // 按sort顺序遍历派工单，找到第一个未被分配的
+            boolean assigned = false;
+            for (TaskOrder taskOrder : taskOrderList) {
+                String taskOrderId = taskOrder.getId();
                 Collection<String> values = userTaskMap.values();
                 if (!values.contains(taskOrderId)) {
                     userTaskMap.put(account, taskOrderId);
-                    TaskOrder taskOrder = taskOrderMap.get(taskOrderId);
                     switch (taskOrder.getStatus()) {
                         case INIT:
                             userStepMap.put(account, "start");
@@ -335,7 +329,14 @@ public class SimulateUserActionServiceImpl implements SimulateUserActionService 
                         default:
                             break;
                     }
+                    // 找到第一个未分配的，立即终止循环，避免覆盖
+                    break;
                 }
+            }
+
+            // 如果没有找到可分配的派工单
+            if (!assigned) {
+                userStepMap.put(account, "none");
             }
         } else if (loginFlag && "none".equals(orderStatus)) {
             // 创建订单
@@ -387,11 +388,16 @@ public class SimulateUserActionServiceImpl implements SimulateUserActionService 
     public List<TaskOrder> getTaskOrder() {
         List<String> workOrderIds = getWorkOrderList();
         // 首道工序开工
-        List<TaskOrder> taskOrderList = taskOrderMapper.selectJoinList(TaskOrder.class, new MPJLambdaWrapper<TaskOrder>().innerJoin(WorkOrder.class, WorkOrder::getId, TaskOrder::getWorkOrderId).innerJoin(Order.class, Order::getId, TaskOrder::getOrderId)
+        List<TaskOrder> taskOrderList = taskOrderMapper.selectJoinList(TaskOrder.class, new MPJLambdaWrapper<TaskOrder>()
+                .innerJoin(WorkOrder.class, WorkOrder::getId, TaskOrder::getWorkOrderId)
+                .innerJoin(Order.class, Order::getId, TaskOrder::getOrderId)
                 // 字段别名
                 .select(TaskOrder::getId, TaskOrder::getStatus, TaskOrder::getSort)
                 // 查询条件
-                .eq(TaskOrder::getStatus, OrderStatus.INIT).in(WorkOrder::getId, workOrderIds).orderByAsc(TaskOrder::getSort).orderByAsc(WorkOrder::getId));
+                .eq(TaskOrder::getStatus, OrderStatus.INIT)
+                .in(WorkOrder::getId, workOrderIds)
+                .orderByAsc(TaskOrder::getSort)
+                .orderByAsc(WorkOrder::getId));
         return taskOrderList;
     }
 
@@ -609,18 +615,7 @@ public class SimulateUserActionServiceImpl implements SimulateUserActionService 
      * @return 可以开工、暂停、复工、报工的派工单集合
      */
     public List<TaskOrder> queryCanStartWorkTaskList() {
-        List<TaskOrder> resultList = new ArrayList<>(300);
-        List<TaskOrder> taskList = taskOrderMapper.queryCanStartTaskList();
-        Map<String, List<TaskOrder>> taskMap = taskList.stream().collect(Collectors.groupingBy(TaskOrder::getWorkOrderId));
-        Set<String> keySet = taskMap.keySet();
-        for (String workOrderId : keySet) {
-            List<TaskOrder> taskOrderList = taskMap.get(workOrderId);
-            TaskOrder canStartTask = findCanStartTask(taskOrderList);
-            if (Objects.nonNull(canStartTask)) {
-                resultList.add(canStartTask);
-            }
-        }
-        return resultList;
+        return taskOrderMapper.queryCanStartTaskList();
     }
 
     /**
