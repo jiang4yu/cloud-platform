@@ -26,17 +26,19 @@ public interface TaskOrderMapper extends MPJBaseMapper<TaskOrder> {
             "and o.order_status = 4")
     List<Object> selectTaskOrderList(@Param("taskOrder") String taskOrderCode);
 
-    @Select(value = "select task.work_order_id, task.sort, task.id, task.status " +
+    @Select(value = "select task.work_order_id, task.id, task.sort, task.status " +
             "from prod_task_order task " +
             "where task.del_flag = 0 " +
             "and task.work_order_id in (" +
-            "  select id " +
+            "  select wo.id " +
             "  from prod_work_order wo " +
             "  where wo.del_flag = 0 " +
-            "  and wo.order_status = 0 " +
-            "  limit 300" +
-            ")" +
-            "order by task.work_order_id, task.sort asc")
+            "  and wo.order_status in (0,1,2,3) " +
+            "  order by wo.order_id asc " +
+            "  limit 1000" +
+            ") " +
+            "and task.status in (0,1,2,3) " +
+            "order by task.sort asc")
     List<TaskOrder> queryCanStartTaskList();
 
     /**
