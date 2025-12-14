@@ -150,6 +150,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         List<User> userList = userMapper.selectList(new LambdaQueryWrapper<User>()
                 .in(User::getAccount, accountSet));
         if (!userList.isEmpty()) {
+            dataList.clear();
             Set<String> repeatAccountSet = userList.stream().map(User::getAccount).collect(Collectors.toSet());
             String msg = StringUtils.collectionToDelimitedString(repeatAccountSet, ",");
             throw new BusinessException("账号【" + msg + "】已存在！");
@@ -159,6 +160,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 .select(Role::getId, Role::getRoleKey, Role::getRoleName)
                 .eq(Role::getRoleKey, "USER"));
         if (Objects.isNull(role)) {
+            dataList.clear();
             throw new BusinessException("未找到【普通用户】角色!");
         }
 
