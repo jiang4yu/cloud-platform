@@ -164,7 +164,7 @@ public class SimulateUserActionServiceImpl implements SimulateUserActionService 
         JSONObject parseObj = JSONUtil.parseObj(execute.body());
         JSONArray jsonArray = parseObj.getJSONObject("data").getJSONArray("data");
 
-        List<Object> msdList = new ArrayList<>(jsonArray.size());
+        List<Object> msdList = new ArrayList<>(CollectionUtils.isEmpty(jsonArray) ? 10 : jsonArray.size());
         for (Object object : jsonArray) {
             JSONObject jsonObject = (JSONObject) object;
             JSONObject owner = jsonObject.getJSONObject("room").getJSONObject("owner");
@@ -330,6 +330,7 @@ public class SimulateUserActionServiceImpl implements SimulateUserActionService 
                             break;
                     }
                     // 找到第一个未分配的，立即终止循环，避免覆盖
+                    assigned = true;
                     break;
                 }
             }
