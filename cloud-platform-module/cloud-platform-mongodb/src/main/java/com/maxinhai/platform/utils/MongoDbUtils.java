@@ -1,11 +1,19 @@
 package com.maxinhai.platform.utils;
 
+import com.maxinhai.platform.dto.MongoPageQueryDTO;
+import com.maxinhai.platform.vo.PageResultVO;
 import com.mongodb.client.MongoClient;
 import com.mongodb.client.MongoDatabase;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Sort;
 import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
+import org.springframework.util.StringUtils;
 
-import javax.annotation.Resource;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -19,13 +27,23 @@ import java.util.Map;
 @Component
 public class MongoDbUtils {
 
-    @Resource
-    private MongoClient mongoClient;  // 底层客户端，用于数据库级操作
+    private static MongoClient mongoClient;  // 底层客户端，用于数据库级操作
+    private static MongoTemplate mongoTemplate;
+
+    @Autowired
+    public void setMongoClient(MongoClient mongoClient) {
+        MongoDbUtils.mongoClient = mongoClient;
+    }
+
+    @Autowired
+    public void setMongoTemplate(MongoTemplate mongoTemplate) {
+        MongoDbUtils.mongoTemplate = mongoTemplate;
+    }
 
     /**
      * 获取所有数据库名称
      */
-    public List<String> getAllDatabases() {
+    public static List<String> getAllDatabases() {
         List<String> dbNames = new ArrayList<>();
         // 通过MongoClient获取所有数据库
         mongoClient.listDatabaseNames().forEach(dbNames::add);
@@ -38,7 +56,7 @@ public class MongoDbUtils {
      * @param dbName 数据库名称
      * @return 对应数据库的MongoTemplate（方便后续操作）
      */
-    public MongoTemplate createDatabase(String dbName) {
+    public static MongoTemplate createDatabase(String dbName) {
         // 1. 获取数据库对象（此时未实际创建）
         MongoDatabase database = mongoClient.getDatabase(dbName);
 
@@ -55,7 +73,7 @@ public class MongoDbUtils {
      * @param oldDbName 原数据库名称
      * @param newDbName 新数据库名称
      */
-    public void renameDatabase(String oldDbName, String newDbName) {
+    public static void renameDatabase(String oldDbName, String newDbName) {
         // 1. 检查原数据库是否存在
         if (!getAllDatabases().contains(oldDbName)) {
             throw new RuntimeException("原数据库不存在：" + oldDbName);
@@ -83,7 +101,7 @@ public class MongoDbUtils {
      *
      * @param dbName 数据库名称
      */
-    public void dropDatabase(String dbName) {
+    public static void dropDatabase(String dbName) {
         mongoClient.getDatabase(dbName).drop();
     }
 
@@ -92,7 +110,7 @@ public class MongoDbUtils {
      *
      * @param dbName 目标数据库名称
      */
-    public MongoTemplate getMongoTemplate(String dbName) {
+    public static MongoTemplate getMongoTemplate(String dbName) {
         // 若数据库不存在，会在首次插入数据时自动创建
         return new MongoTemplate(mongoClient, dbName);
     }
@@ -103,7 +121,7 @@ public class MongoDbUtils {
      * @param dbName 要切换到的数据库名称
      * @return 切换后的数据库对象
      */
-    public MongoDatabase switchDatabase(String dbName) {
+    public static MongoDatabase switchDatabase(String dbName) {
         MongoDatabase database = mongoClient.getDatabase(dbName);
         System.out.println("已切换到数据库: " + dbName);
         return database;
@@ -116,7 +134,7 @@ public class MongoDbUtils {
      * @param collectionName 集合（文档表）名称
      * @param document       要插入的文档数据
      */
-    public void createDocument(String dbName, String collectionName, Map<String, Object> document) {
+    public static void createDocument(String dbName, String collectionName, Map<String, Object> document) {
         // 切换到目标数据库
         MongoDatabase database = switchDatabase(dbName);
 
@@ -131,9 +149,119 @@ public class MongoDbUtils {
      * @param dbName 数据库名称
      * @return 对应数据库的MongoTemplate实例
      */
-    public MongoTemplate getMongoTemplateByDbName(String dbName) {
+    public static MongoTemplate getMongoTemplateByDbName(String dbName) {
         // 通过MongoClient创建指定数据库的MongoTemplate
         return new MongoTemplate(mongoClient, dbName);
+    }
+
+    /**
+     * 通用分页多条件查询
+     *
+     * @param queryDTO    分页查询参数
+     * @param entityClass 实体类Class（如User.class）
+     * @param <T>         实体类型
+     * @return 分页结果
+     */
+    public static <T> PageResultVO<T> pageQuery(MongoPageQueryDTO queryDTO, Class<T> entityClass) {
+        // 1. 构建查询条件
+        Query query = buildQuery(queryDTO);
+
+        // 2. 处理分页：前端pageNum从1开始，转成MongoDB的0开始
+        int pageNum = queryDTO.getPageNum() - 1;
+        int pageSize = queryDTO.getPageSize();
+        query.with(PageRequest.of(pageNum, pageSize));
+
+        // 3. 处理排序
+        Sort.Direction direction = "asc".equalsIgnoreCase(queryDTO.getSortDirection()) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        if (StringUtils.hasText(queryDTO.getSortField())) {
+            query.with(Sort.by(direction, queryDTO.getSortField()));
+        }
+
+        // 4. 执行查询：获取当前页数据
+        List<T> records = mongoTemplate.find(query, entityClass);
+
+        // 5. 查询总条数（去掉分页条件，只查总数）
+        Long total = mongoTemplate.count(new Query(), entityClass);
+
+        // 6. 封装分页结果
+        return PageResultVO.build(records, total, queryDTO.getPageNum(), pageSize);
+    }
+
+    /**
+     * 通用分页多条件查询
+     *
+     * @param queryDTO       分页查询参数
+     * @param entityClass    实体类Class（如User.class）
+     * @param collectionName MongoDB集合名（如"user"）
+     * @param <T>            实体类型
+     * @return 分页结果
+     */
+    public static <T> PageResultVO<T> pageQuery(MongoPageQueryDTO queryDTO, Class<T> entityClass, String collectionName) {
+        // 1. 构建查询条件
+        Query query = buildQuery(queryDTO);
+
+        // 2. 处理分页：前端pageNum从1开始，转成MongoDB的0开始
+        int pageNum = queryDTO.getPageNum() - 1;
+        int pageSize = queryDTO.getPageSize();
+        query.with(PageRequest.of(pageNum, pageSize));
+
+        // 3. 处理排序
+        Sort.Direction direction = "asc".equalsIgnoreCase(queryDTO.getSortDirection()) ? Sort.Direction.ASC : Sort.Direction.DESC;
+        if (StringUtils.hasText(queryDTO.getSortField())) {
+            query.with(Sort.by(direction, queryDTO.getSortField()));
+        }
+
+        // 4. 执行查询：获取当前页数据
+        List<T> records = mongoTemplate.find(query, entityClass, collectionName);
+
+        // 5. 查询总条数（去掉分页条件，只查总数）
+        Long total = mongoTemplate.count(new Query(), collectionName);
+
+        // 6. 封装分页结果
+        return PageResultVO.build(records, total, queryDTO.getPageNum(), pageSize);
+    }
+
+    /**
+     * 动态构建查询条件
+     */
+    private static Query buildQuery(MongoPageQueryDTO queryDTO) {
+        Query query = new Query();
+        Map<String, Object> conditions = queryDTO.getConditions();
+        if (CollectionUtils.isEmpty(conditions)) {
+            return query;
+        }
+
+        // 遍历条件，动态构建Criteria
+        for (Map.Entry<String, Object> entry : conditions.entrySet()) {
+            String field = entry.getKey();
+            Object value = entry.getValue();
+            if (value == null) {
+                continue;
+            }
+
+            Criteria criteria = null;
+            // 1. 模糊查询：值包含%
+            if (value instanceof String && ((String) value).contains("%")) {
+                String fuzzyValue = ((String) value).replace("%", "");
+                criteria = Criteria.where(field).regex(fuzzyValue);
+            }
+            // 2. 范围查询：值是数组（长度2，如[18,30]）
+            else if (value instanceof List && ((List<?>) value).size() == 2) {
+                List<?> rangeValue = (List<?>) value;
+                Object min = rangeValue.get(0);
+                Object max = rangeValue.get(1);
+                criteria = Criteria.where(field).gte(min).lte(max);
+            }
+            // 3. 等于查询：普通值
+            else {
+                criteria = Criteria.where(field).is(value);
+            }
+
+            if (criteria != null) {
+                query.addCriteria(criteria);
+            }
+        }
+        return query;
     }
 
 }
