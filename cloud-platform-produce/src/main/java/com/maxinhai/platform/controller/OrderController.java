@@ -1,5 +1,6 @@
 package com.maxinhai.platform.controller;
 
+import com.maxinhai.platform.annotation.ApiLog;
 import com.maxinhai.platform.dto.OrderAddDTO;
 import com.maxinhai.platform.dto.OrderQueryDTO;
 import com.maxinhai.platform.service.OrderService;
@@ -60,6 +61,7 @@ public class OrderController {
         return AjaxResult.success("创建成功!");
     }
 
+    @ApiLog("获取今日订单完成情况")
     @PostMapping("/getTodayFinishOrderInfo")
     @ApiOperation(value = "获取今日订单完成情况", notes = "获取今日订单完成情况")
     public AjaxResult<Map<String, Long>> getTodayFinishOrderInfo() {
@@ -72,6 +74,7 @@ public class OrderController {
 
     private boolean apiSwitch = true;
 
+    @ApiLog("订单进度统计")
     @PostMapping("/orderProgress")
     @ApiOperation(value = "订单进度统计", notes = "订单进度统计")
     public AjaxResult<OrderProgressVO> orderProgress() {
@@ -83,18 +86,21 @@ public class OrderController {
         }
     }
 
+    @ApiLog("订单进度统计(新)")
     @PostMapping("/orderProgressNew")
     @ApiOperation(value = "订单进度统计(新)", notes = "订单进度统计（效率高，减少数据库交互次数）")
     public AjaxResult<OrderProgressVO> orderProgressNew() {
         return AjaxResult.success(orderService.orderProgressEx1());
     }
 
+    @ApiLog("订单进度统计(新1)")
     @PostMapping("/orderProgressNew1")
     @ApiOperation(value = "订单进度统计(新1)", notes = "订单进度统计（效率高，减少数据库交互次数，减少查询时数据）")
     public AjaxResult<OrderProgressVO> orderProgressNew1() {
         return AjaxResult.success(orderService.orderProgressEx2());
     }
 
+    @ApiLog("订单进度统计(新2)")
     @PostMapping("/orderProgressNew2")
     @ApiOperation(value = "订单进度统计(新2)", notes = "订单进度统计（效率高，减少数据库交互次数，减少查询时数据，多线程异步查询，增加数据库瞬时压力）")
     public AjaxResult<OrderProgressVO> orderProgressNew2() throws ExecutionException, InterruptedException {

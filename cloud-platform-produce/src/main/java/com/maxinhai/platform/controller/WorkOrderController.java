@@ -1,6 +1,6 @@
 package com.maxinhai.platform.controller;
 
-import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
+import com.maxinhai.platform.annotation.ApiLog;
 import com.maxinhai.platform.dto.WorkOrderQueryDTO;
 import com.maxinhai.platform.service.WorkOrderService;
 import com.maxinhai.platform.vo.WorkOrderVO;
@@ -36,6 +36,7 @@ public class WorkOrderController {
         return AjaxResult.success(workOrderService.getInfo(id));
     }
 
+    @ApiLog("删除工单信息")
     @PostMapping("/removeWorkOrder")
     @ApiOperation(value = "删除工单信息", notes = "根据工单ID数组删除工单信息")
     public AjaxResult<Void> removeWorkOrder(@RequestBody String[] ids) {

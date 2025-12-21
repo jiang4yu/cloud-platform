@@ -2,6 +2,7 @@ package com.maxinhai.platform.controller;
 
 import cn.hutool.core.date.DateUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.maxinhai.platform.annotation.ApiLog;
 import com.maxinhai.platform.bo.DailyProcessFinishTaskOrderQtyBO;
 import com.maxinhai.platform.dto.TaskOrderQueryDTO;
 import com.maxinhai.platform.enums.OrderStatus;
@@ -10,6 +11,8 @@ import com.maxinhai.platform.service.TaskOrderService;
 import com.maxinhai.platform.utils.AjaxResult;
 import com.maxinhai.platform.utils.DateUtils;
 import com.maxinhai.platform.utils.PageResult;
+import com.maxinhai.platform.vo.DailyOpTaskOrderVO;
+import com.maxinhai.platform.vo.DailyTaskOrderVO;
 import com.maxinhai.platform.vo.TaskOrderVO;
 import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
@@ -53,6 +56,7 @@ public class TaskOrderController {
         return AjaxResult.success();
     }
 
+    @ApiLog("派工单开工")
     @GetMapping("/startWork/{taskOrderId}")
     @ApiOperation(value = "派工单开工", notes = "根据派工单ID开工")
     public AjaxResult<TaskOrderVO> startWork(@PathVariable("taskOrderId") String taskOrderId) {
@@ -60,6 +64,7 @@ public class TaskOrderController {
         return AjaxResult.success();
     }
 
+    @ApiLog("派工单暂停")
     @GetMapping("/pauseWork/{taskOrderId}")
     @ApiOperation(value = "派工单暂停", notes = "根据派工单ID暂停")
     public AjaxResult<TaskOrderVO> pauseWork(@PathVariable("taskOrderId") String taskOrderId) {
@@ -67,6 +72,7 @@ public class TaskOrderController {
         return AjaxResult.success();
     }
 
+    @ApiLog("派工单复工")
     @GetMapping("/resumeWork/{taskOrderId}")
     @ApiOperation(value = "派工单复工", notes = "根据派工单ID复工")
     public AjaxResult<TaskOrderVO> resumeWork(@PathVariable("taskOrderId") String taskOrderId) {
@@ -74,6 +80,7 @@ public class TaskOrderController {
         return AjaxResult.success();
     }
 
+    @ApiLog("派工单报工")
     @GetMapping("/reportWork/{taskOrderId}")
     @ApiOperation(value = "派工单报工", notes = "根据派工单ID报工")
     public AjaxResult<TaskOrderVO> reportWork(@PathVariable("taskOrderId") String taskOrderId) {
@@ -81,6 +88,7 @@ public class TaskOrderController {
         return AjaxResult.success();
     }
 
+    @ApiLog("派工单完成情况甘特图")
     @GetMapping("/printGanttChart")
     @ApiOperation(value = "派工单完成情况甘特图", notes = "派工单完成情况甘特图")
     public AjaxResult<Void> printGanttChart() {
@@ -92,10 +100,34 @@ public class TaskOrderController {
         return AjaxResult.success();
     }
 
+    @ApiLog("查询每天每道工序派工单完成数量")
     @GetMapping("/queryDailyProcessFinishTaskOrderQty")
     @ApiOperation(value = "查询每天每道工序派工单完成数量", notes = "查询每天每道工序派工单完成数量")
     public AjaxResult<List<DailyProcessFinishTaskOrderQtyBO>> queryDailyProcessFinishTaskOrderQty() {
         return AjaxResult.success(taskOrderService.queryDailyProcessFinishTaskOrderQty());
+    }
+
+    @ApiLog("统计当月派工单完工数量折线图")
+    @GetMapping("/countDailyTaskOrder")
+    @ApiOperation(value = "统计当月派工单完工数量折线图", notes = "统计当月派工单完工数量折线图")
+    public AjaxResult<DailyTaskOrderVO> countDailyTaskOrder() {
+        return AjaxResult.success(taskOrderService.countDailyTaskOrder());
+    }
+
+    private static boolean flag = true;
+
+    @ApiLog("统计当月每日每道工序派工单完工数量折线图")
+    @GetMapping("/countDailyOpTaskOrder")
+    @ApiOperation(value = "统计当月每日每道工序派工单完工数量折线图", notes = "统计当月每日每道工序派工单完工数量折线图")
+    public AjaxResult<DailyOpTaskOrderVO> countDailyOpTaskOrder() {
+        DailyOpTaskOrderVO result = null;
+        if (flag) {
+            result = taskOrderService.countDailyOpTaskOrder();
+        } else {
+            result = taskOrderService.countDailyOpTaskOrderEx();
+        }
+        flag = !flag;
+        return AjaxResult.success(result);
     }
 
     private static final int BAR_LENGTH = 50; // 最长条形图长度
