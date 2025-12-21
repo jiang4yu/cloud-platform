@@ -31,6 +31,7 @@
         <module>cloud-platform-auth</module>
         <module>cloud-platform-minio</module>
         <module>cloud-platform-mybatis-flex</module>
+        <module>cloud-platform-log</module>
     </modules>
 
     <dependencies>
