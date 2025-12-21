@@ -32,10 +32,13 @@ public class RabbitMQUtils {
      * @return 映射表Key
      */
     public static String buildKey(String clientId, String exchange, String queue, String routingKey) {
+        if (StrUtil.isBlank(clientId)) {
+            throw new IllegalArgumentException("clientId cannot be blank!");
+        }
         String key = null;
         if (StrUtil.isNotBlank(routingKey) && !"#".equals(routingKey)) {
             // 路由key不为空，且不为#
-            key = routingKey;
+            key = clientId + ":" + routingKey;
         } else if (StrUtil.isEmpty(exchange) && StrUtil.isEmpty(queue)) {
             // 路由key为空，交换机、队列不为空
             key = clientId + ":" + exchange + ":" + queue;
