@@ -3,7 +3,7 @@ package com.maxinhai.platform.handler;
 import com.alibaba.fastjson2.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.maxinhai.platform.bo.ApiClientBO;
-import com.maxinhai.platform.bo.ApiParam;
+import com.maxinhai.platform.bo.ApiParamBO;
 import com.maxinhai.platform.enums.ApiParamType;
 import com.maxinhai.platform.enums.ConnectType;
 import com.maxinhai.platform.enums.Method;
@@ -85,7 +85,7 @@ public class ApiHandler implements CommandLineRunner {
      * @return 响应体字符串
      * @throws IOException 异常
      */
-    public String execute(String clientId, List<ApiParam> params) throws IOException {
+    public String execute(String clientId, List<ApiParamBO> params) throws IOException {
         if (cleintMap.isEmpty()) {
             throw new IllegalStateException("没有可用的API客户端");
         }
@@ -102,7 +102,7 @@ public class ApiHandler implements CommandLineRunner {
      * @return 响应体字符串
      * @throws IOException 异常（含详细错误信息）
      */
-    public String execute(Method method, String url, List<ApiParam> params) throws IOException {
+    public String execute(Method method, String url, List<ApiParamBO> params) throws IOException {
         // 1. 校验必要参数
         if (url == null || url.trim().isEmpty()) {
             throw new IllegalArgumentException("请求URL不能为空");
@@ -136,7 +136,7 @@ public class ApiHandler implements CommandLineRunner {
     /**
      * 按方法类型构建请求（拆分逻辑，提高可读性）
      */
-    private Request buildRequest(Method method, String url, List<ApiParam> params) throws IOException {
+    private Request buildRequest(Method method, String url, List<ApiParamBO> params) throws IOException {
         switch (method) {
             case GET_PATH_VARIABLE:
                 return buildGetPathVariableRequest(url, params);
@@ -159,14 +159,14 @@ public class ApiHandler implements CommandLineRunner {
      * 构建GET请求（路径参数，如 /api/{name}/{id}）
      * 逻辑：替换URL中的{参数名}占位符，如param.name=name → 替换{name}
      */
-    private Request buildGetPathVariableRequest(String url, List<ApiParam> params) throws IOException {
+    private Request buildGetPathVariableRequest(String url, List<ApiParamBO> params) throws IOException {
         if (CollectionUtils.isEmpty(params)) {
             return new Request.Builder().url(url).get().build();
         }
 
         // 处理路径参数替换（使用StringBuilder避免不可变字符串问题）
         String processedUrl = url;
-        for (ApiParam param : params) {
+        for (ApiParamBO param : params) {
             String placeholder = "{" + param.getName() + "}"; // 匹配{name}格式的占位符
             if (!processedUrl.contains(placeholder)) {
                 throw new IllegalArgumentException("URL中未找到路径参数占位符：" + placeholder);
@@ -188,7 +188,7 @@ public class ApiHandler implements CommandLineRunner {
     /**
      * 构建GET请求（查询参数，如 /api?name=xxx&age=18）
      */
-    private Request buildGetRequest(String url, List<ApiParam> params) {
+    private Request buildGetRequest(String url, List<ApiParamBO> params) {
         // 解析入参url，基于原URL添加查询参数（避免硬编码host/port）
         HttpUrl httpUrl = HttpUrl.parse(url);
         if (httpUrl == null) {
@@ -198,7 +198,7 @@ public class ApiHandler implements CommandLineRunner {
 
         // 动态添加查询参数（params为null/空时不处理）
         if (!CollectionUtils.isEmpty(params)) {
-            for (ApiParam param : params) {
+            for (ApiParamBO param : params) {
                 String key = param.getName();
                 String value = param.getValue() != null ? param.getValue().toString() : "";
                 urlBuilder.addQueryParameter(key, value); // OkHttp自动编码查询参数
@@ -214,12 +214,12 @@ public class ApiHandler implements CommandLineRunner {
     /**
      * 构建POST请求（JSON请求体）
      */
-    private Request buildPostJsonRequest(String url, List<ApiParam> params) {
+    private Request buildPostJsonRequest(String url, List<ApiParamBO> params) {
         RequestBody requestBody = null;
         if (!CollectionUtils.isEmpty(params)) {
             // 转换为Map再转JSON
             Map<String, Object> paramsMap = new HashMap<>();
-            for (ApiParam param : params) {
+            for (ApiParamBO param : params) {
                 paramsMap.put(param.getName(), param.getValue());
             }
             String jsonBody = JSON.toJSONString(paramsMap);
@@ -238,7 +238,7 @@ public class ApiHandler implements CommandLineRunner {
     /**
      * 构建POST请求（form-data，支持文件上传）
      */
-    private Request buildPostFormDataRequest(String url, List<ApiParam> params) throws IOException {
+    private Request buildPostFormDataRequest(String url, List<ApiParamBO> params) throws IOException {
         MultipartBody.Builder formBuilder = new MultipartBody.Builder()
                 .setType(MultipartBody.FORM);
 
@@ -247,7 +247,7 @@ public class ApiHandler implements CommandLineRunner {
         }
 
         // 处理普通参数和文件参数（使用param.getName()作为key，适配后端参数名）
-        for (ApiParam param : params) {
+        for (ApiParamBO param : params) {
             String paramName = param.getName();
             Object value = param.getValue();
             if (value == null) {
@@ -292,11 +292,11 @@ public class ApiHandler implements CommandLineRunner {
     /**
      * 构建PUT请求（JSON请求体）
      */
-    private Request buildPutRequest(String url, List<ApiParam> params) {
+    private Request buildPutRequest(String url, List<ApiParamBO> params) {
         RequestBody requestBody = null;
         if (!CollectionUtils.isEmpty(params)) {
             Map<String, Object> paramsMap = new HashMap<>();
-            for (ApiParam param : params) {
+            for (ApiParamBO param : params) {
                 paramsMap.put(param.getName(), param.getValue());
             }
             String jsonBody = JSON.toJSONString(paramsMap);
@@ -315,10 +315,10 @@ public class ApiHandler implements CommandLineRunner {
     /**
      * 构建DELETE请求（支持路径参数或JSON请求体）
      */
-    private Request buildDeleteRequest(String url, List<ApiParam> params) throws IOException {
+    private Request buildDeleteRequest(String url, List<ApiParamBO> params) throws IOException {
         // 处理路径参数替换（使用StringBuilder避免不可变字符串问题）
         String processedUrl = url;
-        for (ApiParam param : params) {
+        for (ApiParamBO param : params) {
             String placeholder = "{" + param.getName() + "}"; // 匹配{name}格式的占位符
             if (!processedUrl.contains(placeholder)) {
                 throw new IllegalArgumentException("URL中未找到路径参数占位符：" + placeholder);

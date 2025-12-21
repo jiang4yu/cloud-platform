@@ -8,7 +8,7 @@ import lombok.NoArgsConstructor;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class ApiParam {
+public class ApiParamBO {
 
     /**
      * 参数类型（FILE.文件 STRING.字符串 NUMBER.数值 BOOLEAN.布尔值）
