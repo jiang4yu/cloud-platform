@@ -1,11 +1,13 @@
 package com.maxinhai.platform.enums;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 /**
  * 12类FTP报文类型枚举（严格对应细则附录B/C）
  */
 @Getter
+@AllArgsConstructor
 public enum FtpFileTypeEnum {
 
     // B类：基础数据
@@ -27,10 +29,5 @@ public enum FtpFileTypeEnum {
     private final String code;
     // 报文名称（日志/注释用）
     private final String name;
-
-    FtpFileTypeEnum(String code, String name) {
-        this.code = code;
-        this.name = name;
-    }
 
 }

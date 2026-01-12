@@ -1,6 +1,6 @@
 package com.maxinhai.platform.test;
 
-import com.maxinhai.platform.po.*;
+import com.maxinhai.platform.po.ftp.*;
 import com.maxinhai.platform.service.FtpMessageService;
 import org.junit.Test;
 import org.junit.runner.RunWith;

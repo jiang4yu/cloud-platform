@@ -2,7 +2,7 @@ package com.maxinhai.platform.parser.impl;
 
 import com.maxinhai.platform.constant.FtpConstant;
 import com.maxinhai.platform.parser.DataParser;
-import com.maxinhai.platform.po.CameraRealTimeData;
+import com.maxinhai.platform.po.ftp.CameraRealTimeData;
 import org.springframework.stereotype.Component;
 
 /**

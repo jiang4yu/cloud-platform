@@ -3,7 +3,7 @@ package com.maxinhai.platform.service.impl;
 import com.maxinhai.platform.enums.FtpFileTypeEnum;
 import com.maxinhai.platform.parser.DataParser;
 import com.maxinhai.platform.parser.ParserFactory;
-import com.maxinhai.platform.po.*;
+import com.maxinhai.platform.po.ftp.*;
 import com.maxinhai.platform.service.FtpMessageService;
 import com.maxinhai.platform.util.FtpFileUtil;
 import lombok.RequiredArgsConstructor;

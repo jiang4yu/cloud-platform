@@ -1,4 +1,4 @@
-package com.maxinhai.platform.po;
+package com.maxinhai.platform.po.ftp;
 
 import lombok.Data;
 

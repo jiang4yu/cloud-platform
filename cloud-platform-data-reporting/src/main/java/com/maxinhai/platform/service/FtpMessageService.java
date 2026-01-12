@@ -1,7 +1,7 @@
 package com.maxinhai.platform.service;
 
 import com.maxinhai.platform.enums.FtpFileTypeEnum;
-import com.maxinhai.platform.po.*;
+import com.maxinhai.platform.po.ftp.*;
 
 import java.util.List;
 
