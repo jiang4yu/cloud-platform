@@ -28,6 +28,7 @@
         <module>cloud-platform-zlmediakit</module>
         <module>cloud-platform-admin</module>
         <module>cloud-platform-algorithm</module>
+        <module>cloud-platform-data-reporting</module>
     </modules>
 
     <properties>

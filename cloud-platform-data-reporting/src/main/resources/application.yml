@@ -1,0 +1,40 @@
+server:
+  port: 10030
+spring:
+  application:
+    name: cloud-platform-data-reporting
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+  cloud:
+    nacos:
+      config:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: nacos
+        file-extension: yaml
+      discovery:
+        server-addr: 127.0.0.1:8848
+        username: nacos
+        password: nacos
+  config:
+    import:
+      - "nacos:${spring.application.name}.${spring.cloud.nacos.config.file-extension}"
+#      - "nacos:${spring.application.name}-${spring.profiles.active}.${spring.cloud.nacos.config.file-extension}"
+
+# FTP配置
+ftp:
+  # FTP服务器地址
+  host: 10.8.0.30 #127.0.0.1
+  # FTP端口（默认21）
+  port: 21
+  # 登录账号
+  username: ftpuser #admin
+  # 登录密码
+  password: 123456 #123456
+  # FTP服务器上传根路径（需确保该目录存在且有写入权限）
+  base-path: /
+  # 被动模式（大部分FTP服务器需要开启，避免连接超时）
+  passive-mode: true
+  # 字符编码（解决中文文件名乱码）
+  charset: UTF-8
