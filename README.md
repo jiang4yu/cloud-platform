@@ -173,3 +173,17 @@ docker rename 旧容器名 新容器名
 docker stats  # 实时查看所有容器的CPU、内存占用
 docker stats 容器名/ID  # 查看指定容器的资源占用
 ```
+
+### git切换分支并推送远程分支
+```shell
+# 步骤1: 在当前main或master分支上的修改暂存起来
+git stash
+# 步骤2: 修改暂存后，在本地新建分支（new_branch为新分支名称）
+git checkout -b new_branch
+# 步骤3: 将暂存的修改放入新分支中
+git stash pop
+# 步骤4: 在本地新分支中进行commit，比如：add、update、delete
+git commit -m "message"
+# 步骤5：将提交的内容push到远程分支
+git push
+```
